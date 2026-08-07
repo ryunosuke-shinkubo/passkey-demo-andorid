@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Passkey Redirect Demo</string>
+    <string name="callback_preview">コールバック例</string>
+    <string name="callback_url">受信した callback URL</string>
+    <string name="clear_result">受信結果をクリア</string>
+    <string name="default_status">ログインを押すと外部ブラウザを開きます。</string>
+    <string name="launch_browser">ブラウザを開く</string>
+    <string name="launch_url">起動するブラウザ URL</string>
+    <string name="login_page_url">ログインページ URL</string>
+    <string name="pending_state">state</string>
+    <string name="received_error">受信 error</string>
+    <string name="received_shortcode">受信 shortTimeCode</string>
+    <string name="received_state">受信 state</string>
+    <string name="redirect_url">redirect_url</string>
+    <string name="state_validation">state 検証</string>
+    <string name="status">status</string>
+    <style name="Theme.PasskeyRedirectDemo" parent="Theme.Material3.DayNight.NoActionBar"/>
+</resources>
