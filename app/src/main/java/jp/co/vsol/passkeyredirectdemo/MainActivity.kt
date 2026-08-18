@@ -189,7 +189,7 @@ class MainActivity : AppCompatActivity() {
         statusValue.text = message
     }
 
-    private fun defaultLoginPageUrl(): String = "https://ryunosuke-shinkubo.github.io/auth/test-login.html"
+    private fun defaultLoginPageUrl(): String = "https://sinfo.stg-trade.sbifxt.co.jp:1443/mpage/pf-login.html"
 
     private fun defaultRedirectUrl(): String = "https://ryunosuke-shinkubo.github.io/auth/callback.html"
 
