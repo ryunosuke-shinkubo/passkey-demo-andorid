@@ -47,26 +47,24 @@
     <main>
       <h1>テストログインページ</h1>
       <p>
-        <code>redirect_url</code> と <code>state</code> を使ってコールバックへ戻すテスト用ページです。
+      まず defaultLoginPageUrl に飛び、ここで受け取った redirect_url をスマホに表示して、その URL に遷移します。
       </p>
 
       <div class="panel">
-        <div><strong>state</strong></div>
-        <code id="stateValue"></code>
+      <div><strong>redirect_url</strong></div>
+      <code id="redirectUrlValue"></code>
       </div>
 
       <div class="panel">
-        <div><strong>redirect_url</strong></div>
-        <code id="redirectValue"></code>
+      <div><strong>state</strong></div>
+      <code id="stateValue"></code>
       </div>
 
-      <form id="redirectForm" method="get">
-        <input id="shortTimeCodeInput" type="hidden" name="shortTimeCode" value="TEST_SHORT_CODE">
-        <input id="stateInput" type="hidden" name="state" value="">
-        <p>
-          <button type="submit">テスト用コールバックを開く</button>
-        </p>
-      </form>
+    <form id="redirectForm">
+      <p>
+        <button type="submit">default URL を開く</button>
+      </p>
+    </form>
 
       <p id="status"></p>
     </main>
@@ -76,21 +74,21 @@
       const state = params.get("state") ?? "";
       const redirectUrl = params.get("redirect_url") ?? "";
       const status = document.getElementById("status");
+      const redirectUrlValue = document.getElementById("redirectUrlValue");
       const stateValue = document.getElementById("stateValue");
-      const redirectValue = document.getElementById("redirectValue");
       const redirectForm = document.getElementById("redirectForm");
-      const stateInput = document.getElementById("stateInput");
 
+      redirectUrlValue.textContent = redirectUrl || "(empty)";
       stateValue.textContent = state || "(empty)";
-      redirectValue.textContent = redirectUrl || "(empty)";
-      stateInput.value = state;
+      status.textContent = redirectUrl
+        ? "ボタンを押すと redirect_url に移動します。"
+        : "redirect_url がないため移動できません。";
 
-      if (!redirectUrl) {
-        status.textContent = "redirect_url がないためテストできません。";
-        redirectForm.hidden = true;
-      } else {
-        redirectForm.action = redirectUrl;
-      }
+      redirectForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!redirectUrl) return;
+        window.location.assign(redirectUrl);
+      });
     </script>
   </body>
 </html>
