@@ -7,7 +7,25 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.core.widget.doAfterTextChanged
+import java.io.File
+import java.io.FileWriter
+
+private fun String.htmlAttributeEscape(): String {
+    val builder = StringBuilder(length)
+    for (character in this) {
+        when (character) {
+            '&' -> builder.append("&amp;")
+            '<' -> builder.append("&lt;")
+            '>' -> builder.append("&gt;")
+            '"' -> builder.append("&quot;")
+            '\'' -> builder.append("&#39;")
+            else -> builder.append(character)
+        }
+    }
+    return builder.toString()
+}
 
 class MainActivity : AppCompatActivity() {
     private lateinit var loginUrlEdit: EditText
@@ -32,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var receivedError: String? = null
     private var stateValidationMessage: String? = null
     private var statusMessage: String = "ログインを押すと外部ブラウザを開きます。"
+    private var bridgeHtmlFile: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,7 +106,12 @@ class MainActivity : AppCompatActivity() {
         val loginUrlText = loginUrlEdit.text?.toString().orEmpty()
         val redirectUrlText = redirectUrlEdit.text?.toString().orEmpty()
         pendingState = makeState()
-        val loginUrl = buildLoginUrl(loginUrlText, redirectUrlText) ?: return
+        val loginUrl = buildLoginTargetUrl(loginUrlText, redirectUrlText) ?: return
+        val bridgeUri = buildPostBridgeUri(
+            loginUrl = loginUrl.toString(),
+            state = pendingState,
+            redirectUrl = redirectUrlText
+        )
 
         launchedLoginUrl = loginUrl
         callbackUrl = null
@@ -96,10 +120,15 @@ class MainActivity : AppCompatActivity() {
         receivedError = null
         stateValidationMessage = null
 
-        updateStatus("既定ブラウザを起動しました。認証完了後のコールバックを待機しています。")
+        updateStatus("Chrome でログインを開始しました。認証完了後のコールバックを待機しています。")
         renderState()
 
-        startActivity(Intent(Intent.ACTION_VIEW, loginUrl))
+        startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(bridgeUri, "text/html")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        )
     }
 
     private fun handleIntent(intent: Intent) {
@@ -139,10 +168,10 @@ class MainActivity : AppCompatActivity() {
         renderState()
     }
 
-    private fun buildLoginUrl(loginUrlText: String, redirectUrlText: String): Uri? {
+    private fun buildLoginTargetUrl(loginUrlText: String, redirectUrlText: String): Uri? {
         val redirectUrl = Uri.parse(redirectUrlText)
         if (redirectUrl.scheme.isNullOrBlank() || redirectUrl.host.isNullOrBlank()) {
-            updateStatus("redirect_url の形式が不正です。")
+            updateStatus("redirect_uri の形式が不正です。")
             return null
         }
 
@@ -152,11 +181,7 @@ class MainActivity : AppCompatActivity() {
             return null
         }
 
-        return loginUrl.buildUpon()
-            .clearQuery()
-            .appendQueryParameter("state", pendingState)
-            .appendQueryParameter("redirect_url", redirectUrlText)
-            .build()
+        return loginUrl
     }
 
     private fun renderState() {
@@ -176,12 +201,15 @@ class MainActivity : AppCompatActivity() {
         val redirectUrl = Uri.parse(redirectUrlText)
         if (redirectUrl.scheme.isNullOrBlank() || redirectUrl.host.isNullOrBlank()) return null
 
-        return redirectUrl.buildUpon()
+        val builder = redirectUrl.buildUpon()
             .clearQuery()
-            .appendQueryParameter("shortTimeCode", "TEST_SHORT_CODE")
             .appendQueryParameter("state", pendingState)
-            .build()
-            .toString()
+
+        receivedShortTimeCode?.let {
+            builder.appendQueryParameter("shortTimeCode", it)
+        }
+
+        return builder.build().toString()
     }
 
     private fun updateStatus(message: String) {
@@ -189,9 +217,51 @@ class MainActivity : AppCompatActivity() {
         statusValue.text = message
     }
 
+    private fun buildPostBridgeUri(loginUrl: String, state: String, redirectUrl: String): Uri {
+        val html = """
+            <!doctype html>
+            <html lang="ja">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <title>ログイン中</title>
+            </head>
+            <body>
+              <noscript>JavaScript を有効にしてください。</noscript>
+              <form id="bridgeForm" action="${loginUrl.htmlAttributeEscape()}" method="post">
+                <input type="hidden" name="state" value="${state.htmlAttributeEscape()}">
+                <input type="hidden" name="redirect_uri" value="${redirectUrl.htmlAttributeEscape()}">
+              </form>
+              <script>
+                document.getElementById('bridgeForm').submit();
+              </script>
+            </body>
+            </html>
+        """.trimIndent()
+
+        val file = File(cacheDir, "post-bridge.html")
+        FileWriter(file, false).use { writer ->
+            writer.write(html)
+        }
+        bridgeHtmlFile = file
+
+        return FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileprovider",
+            file
+        )
+    }
+
     private fun defaultLoginPageUrl(): String = "https://sinfo.stg-trade.sbifxt.co.jp:1443/mpage/pf-login.html"
+//    private fun defaultLoginPageUrl(): String = "https://ryunosuke-shinkubo.github.io/auth/test-login.html"
 
     private fun defaultRedirectUrl(): String = "https://ryunosuke-shinkubo.github.io/auth/callback.html"
 
     private fun makeState(): String = java.util.UUID.randomUUID().toString().replace("-", "").lowercase()
+
+    override fun onDestroy() {
+        bridgeHtmlFile?.delete()
+        bridgeHtmlFile = null
+        super.onDestroy()
+    }
 }
