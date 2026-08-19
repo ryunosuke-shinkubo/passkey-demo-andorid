@@ -2,7 +2,7 @@
     <string name="app_name">Passkey Redirect Demo</string>
     <string name="login_page_url">ログインページ URL</string>
     <string name="redirect_url">redirect_uri</string>
-    <string name="launch_browser">ログイン開始（POST）</string>
+    <string name="launch_browser">ログイン開始（GET）</string>
     <string name="clear_result">受信結果をクリア</string>
     <string name="pending_state">state</string>
     <string name="launch_url">送信先 URL</string>
@@ -13,5 +13,5 @@
     <string name="state_validation">state 検証</string>
     <string name="callback_url">受信した callback URL</string>
     <string name="status">status</string>
-    <string name="default_status">ログインを押すと POST 送信で開始します。</string>
+    <string name="default_status">ログインを押すと GET 送信で開始します。</string>
 </resources>
